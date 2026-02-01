@@ -4,5 +4,5 @@ Usage includes:
 1.INSTALLATION OF PACKAGES
 pip install psutil pandas numpy tensorflow streamlit xgboost scikit-learn
 
-2.Execution of the Python File
+2.EXECUTION OF THE PYTHON FILE
 streamlit run main.py in the terminal
