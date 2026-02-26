@@ -58,7 +58,7 @@ if "hist_df" not in st.session_state:
 st.markdown("""
 <div class="title-container">
     <div class="main-title">InferAI</div>
-    <div class="subtitle">Deep Kernel & Hardware Failure Prediction Engine</div>
+    <div class="subtitle">An Advanced Hardware and Software Failure Prediction Engine</div>
 </div>
 """, unsafe_allow_html=True)
 
