@@ -1,0 +1,129 @@
+import streamlit as st
+import psutil
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import IsolationForest
+import plotly.graph_objects as go
+from datetime import datetime
+import time
+import os
+
+# ---------------- Page Config ----------------
+st.set_page_config(page_title="InferAI PRO", layout="wide", page_icon="⚡")
+
+# ---------------- Advanced CSS ----------------
+st.markdown("""
+<style>
+body, .stApp {background-color:#0E1117; color:#FF4500; font-family:'Segoe UI', sans-serif;}
+[data-testid="stSidebar"] {background-color:#000 !important; border-right: 1px solid #FF4500;}
+.stMetric {background: #161B22; border: 1px solid #30363D; border-radius: 10px; padding: 15px;}
+.risk-card {
+    padding: 20px; border-radius: 15px; background: rgba(255, 69, 0, 0.1);
+    border: 2px solid #FF4500; margin-bottom: 20px; text-align: center;
+}
+.failure-log {
+    font-family: 'Courier New', monospace; font-size: 13px; background: #000;
+    color: #00FF00; padding: 15px; border-radius: 5px; height: 250px; overflow-y: scroll; border: 1px solid #333;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------- Logic Engine ----------------
+def calculate_failure_probability(data):
+    score = 0
+    if data['CPU'] > 85: score += 25
+    if data['Swap'] > 30: score += 30
+    if data['IO_Wait'] > 10: score += 20
+    if data['Zombies'] > 0: score += 15
+    if data['Battery'] < 20 and not data['Plugged']: score += 10
+    return min(score, 100)
+
+# ---------------- Title ----------------
+st.markdown('<h1 style="text-align:center; color:white;">⚡ INFERAI PRO: PREEMPTIVE OPTIMIZER</h1>', unsafe_allow_html=True)
+
+# ---------------- Sidebar ----------------
+st.sidebar.title("🛠️ Control Center")
+# Fixed: Analysis Depth now affects model sensitivity
+depth_map = {"Standard": 0.05, "Heuristic Deep Scan": 0.10, "AI Forensic": 0.20}
+analysis_mode = st.sidebar.selectbox("Analysis Depth", list(depth_map.keys()))
+contamination_val = depth_map[analysis_mode]
+
+# ---------------- State Management ----------------
+if "failure_events" not in st.session_state:
+    st.session_state.failure_events = []
+if "hist_df" not in st.session_state:
+    st.session_state.hist_df = pd.DataFrame(columns=['CPU', 'Mem', 'Swap', 'IO_Wait'])
+
+placeholder = st.empty()
+
+# ---------------- Main Loop ----------------
+while True:
+    # Telemetry
+    cpu = psutil.cpu_percent()
+    mem = psutil.virtual_memory().percent
+    swap = psutil.swap_memory().percent
+    zombies = len([p for p in psutil.process_iter(['status']) if p.info['status'] == psutil.STATUS_ZOMBIE])
+    
+    try:
+        io_wait = psutil.cpu_times_percent().iowait
+        batt = psutil.sensors_battery().percent if psutil.sensors_battery() else 100
+        plugged = psutil.sensors_battery().power_plugged if psutil.sensors_battery() else True
+    except:
+        io_wait, batt, plugged = 0, 100, True
+
+    current_stats = {"CPU": cpu, "Mem": mem, "Swap": swap, "IO_Wait": io_wait, "Battery": batt, "Plugged": plugged, "Zombies": zombies}
+    prob = calculate_failure_probability(current_stats)
+
+    with placeholder.container():
+        c1, c2 = st.columns([1, 2])
+        
+        with c1:
+            st.markdown(f"""
+            <div class="risk-card">
+                <h3>SYSTEM CRASH RISK</h3>
+                <h1 style="font-size: 60px; color: {'#FF4500' if prob > 50 else '#00FF00'};">{prob}%</h1>
+                <p>Status: {'CRITICAL' if prob > 50 else 'OPTIMIZED'}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with c2:
+            # FIXED: Added unique key to prevent DuplicateElementId
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number", value = cpu,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': "Thermal Stress Index", 'font': {'color': "white"}},
+                gauge = {'axis': {'range': [None, 100]}, 'bar': {'color': "#FF4500"}}
+            ))
+            fig_gauge.update_layout(height=250, paper_bgcolor="rgba(0,0,0,0)", font={'color': "white"}, margin=dict(l=20,r=20,t=50,b=20))
+            st.plotly_chart(fig_gauge, use_container_width=True, key=f"gauge_{time.time()}")
+
+        # Diagnostic Feed
+        st.subheader("🛡️ Professional Diagnostic Feed")
+        col_a, col_b = st.columns(2)
+        
+        with col_a:
+            if prob > 50: st.error(f"🚨 PREDICTIVE ALERT: Hardware instability detected. Probability of failure is {prob}%.")
+            if zombies > 0: st.warning(f"⚠️ OS KERNEL: {zombies} Zombie processes detected. Potential PID exhaustion.")
+            if io_wait > 8: st.info("ℹ️ HARDWARE: High Disk I/O Wait. Possible mechanical drive decay.")
+            
+            # AI Anomaly Detection
+            if len(st.session_state.hist_df) > 10:
+                model = IsolationForest(contamination=contamination_val)
+                model.fit(st.session_state.hist_df[['CPU', 'Mem', 'Swap', 'IO_Wait']])
+                is_anomaly = model.predict([[cpu, mem, swap, io_wait]])
+                if is_anomaly[0] == -1:
+                    st.error("🤖 AI FORENSIC: Non-linear behavioral anomaly detected in Kernel cycles.")
+
+        with col_b:
+            st.markdown('<div class="failure-log">', unsafe_allow_html=True)
+            log_entry = f"[{datetime.now().strftime('%H:%M:%S')}] RISK: {prob}% | {analysis_mode} Active"
+            st.session_state.failure_events.append(log_entry)
+            for e in reversed(st.session_state.failure_events[-10:]):
+                st.write(e)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Update History
+        new_data = pd.DataFrame([[cpu, mem, swap, io_wait]], columns=['CPU', 'Mem', 'Swap', 'IO_Wait'])
+        st.session_state.hist_df = pd.concat([st.session_state.hist_df, new_data], ignore_index=True).tail(100)
+
+    time.sleep(1)
