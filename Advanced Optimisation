@@ -21,115 +21,113 @@ body, .stApp {background-color:#0E1117; color:#FF4500; font-family:'Segoe UI', s
 }
 .failure-log {
     font-family: 'Courier New', monospace; font-size: 13px; background: #000;
-    color: #00FF00; padding: 15px; border-radius: 5px; height: 220px; overflow-y: scroll; border: 1px solid #333;
+    color: #00FF00; padding: 15px; border-radius: 5px; height: 250px; overflow-y: scroll; border: 1px solid #333;
 }
 </style>
 """, unsafe_allow_html=True)
 
+# ---------------- Initialize Persistent State ----------------
+if "log_data" not in st.session_state:
+    st.session_state.log_data = []
+if "hist_df" not in st.session_state:
+    st.session_state.hist_df = pd.DataFrame(columns=['Time', 'CPU', 'Mem', 'Risk'])
+
 # ---------------- Title ----------------
 st.markdown('<h1 style="text-align:center; color:white;">⚡ INFERAI PRO</h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align:center; color:#FF4500;">Predictive Hardware & OS Failure Optimization</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:#FF4500;">Deep Kernel & Hardware Failure Prediction Engine</p>', unsafe_allow_html=True)
 
 # ---------------- Sidebar ----------------
-st.sidebar.title("🛡️ Engine Control")
-update_interval = st.sidebar.slider("Scan Frequency (Seconds)", 0.5, 5.0, 1.0)
-history_size = st.sidebar.slider("History Depth", 50, 500, 100)
+st.sidebar.title("🛡️ Engine Status")
+status_placeholder = st.sidebar.empty()
+update_interval = st.sidebar.slider("Scan Speed (Seconds)", 0.5, 5.0, 1.0)
 
-if "log" not in st.session_state: st.session_state.log = []
-if "hist_data" not in st.session_state: 
-    st.session_state.hist_data = pd.DataFrame(columns=['Time', 'CPU', 'Mem', 'IO_Wait'])
-
-# ---------------- Logic: Failure Diagnostics ----------------
-def get_diagnostics():
-    # Hardware Stats
+# ---------------- Failure Detection Engine ----------------
+def run_deep_scan():
     cpu = psutil.cpu_percent()
     mem = psutil.virtual_memory().percent
     swap = psutil.swap_memory().percent
     
-    # Advanced Failure Indicators
-    try:
-        # High I/O Wait = Physical Disk Failure or Controller Bottleneck
-        io_wait = psutil.cpu_times_percent().iowait 
-    except: io_wait = 0.0
-    
-    try:
-        # Battery Health Monitoring
-        batt = psutil.sensors_battery().percent
-        plugged = psutil.sensors_battery().power_plugged
-    except: batt, plugged = 100, True
-    
-    # OS Level: Zombie processes indicate Kernel process-table leaks
     zombies = len([p for p in psutil.process_iter(['status']) if p.info['status'] == psutil.STATUS_ZOMBIE])
     
-    # Calculate Risk Score (Predictive Entropy)
+    try:
+        io_wait = psutil.cpu_times_percent().iowait
+    except: io_wait = 0.0
+    
     risk = 0
     alerts = []
+    if cpu > 85: risk += 20; alerts.append("THERMAL: High sustained CPU load detected.")
+    if swap > 25: risk += 30; alerts.append("HARDWARE: RAM Bank failure/Swap thrashing.")
+    if io_wait > 10: risk += 25; alerts.append("STORAGE: Mechanical disk latency anomaly.")
+    if zombies > 0: risk += 15; alerts.append("KERNEL: OS Process Table Leak (Zombies).")
     
-    if cpu > 90: risk += 25; alerts.append("THERMAL STRESS: CPU Throttling Imminent")
-    if swap > 30: risk += 30; alerts.append("HARDWARE: RAM Bank Exhaustion / Swap Thrashing")
-    if io_wait > 10: risk += 25; alerts.append("DISK FAILURE: High Mechanical Latency Detected")
-    if zombies > 0: risk += 20; alerts.append("OS KERNEL: Zombie Process Detected")
-    
-    return cpu, mem, swap, io_wait, batt, plugged, min(risk, 100), alerts
+    return cpu, mem, swap, io_wait, zombies, min(risk, 100), alerts
 
-# ---------------- Dashboard Loop ----------------
+# ---------------- Main Dashboard Loop ----------------
 main_placeholder = st.empty()
 
 while True:
-    cpu, mem, swap, io_wait, batt, plugged, risk, alerts = get_diagnostics()
+    status_placeholder.markdown("🟢 **SENSOR STATUS: ACTIVE SCANNING**")
+    cpu, mem, swap, io_wait, zombies, risk, alerts = run_deep_scan()
+    timestamp = datetime.now().strftime("%H:%M:%S")
     
-    # Update History for Trends
-    now = datetime.now().strftime("%H:%M:%S")
-    new_entry = pd.DataFrame([[now, cpu, mem, io_wait]], columns=['Time', 'CPU', 'Mem', 'IO_Wait'])
-    st.session_state.hist_data = pd.concat([st.session_state.hist_data, new_entry], ignore_index=True).tail(history_size)
+    log_entry = f"[{timestamp}] RISK: {risk}% | CPU: {cpu}% | MEM: {mem}% | IO: {io_wait}%"
+    st.session_state.log_data.append(log_entry)
+    if len(st.session_state.log_data) > 50: st.session_state.log_data.pop(0)
+    
+    new_point = pd.DataFrame([[timestamp, cpu, mem, risk]], columns=['Time', 'CPU', 'Mem', 'Risk'])
+    st.session_state.hist_df = pd.concat([st.session_state.hist_df, new_point], ignore_index=True).tail(100)
 
     with main_placeholder.container():
-        # Top Row: Probability & Critical Metrics
-        col1, col2, col3 = st.columns([1.5, 1, 1])
+        # Top Row: All three major cards now highlighted
+        c1, c2, c3 = st.columns(3)
         
-        with col1:
+        with c1:
             st.markdown(f"""
             <div class="risk-card">
-                <h2 style="color:white; margin:0;">FAILURE PROBABILITY</h2>
-                <h1 style="font-size: 64px; color: {'#FF4500' if risk > 50 else '#00FF00'};">{risk}%</h1>
-                <p style="color:white;">{'ACTION REQUIRED' if risk > 50 else 'SYSTEM OPTIMIZED'}</p>
+                <h3 style="color:white; margin:0; font-size:18px;">FAILURE PROBABILITY</h3>
+                <h1 style="font-size: 50px; color: {'#FF4500' if risk > 50 else '#00FF00'}; margin:10px 0;">{risk}%</h1>
+                <p style="color:white; font-weight:bold; margin:0;">{'SYSTEM DEGRADED' if risk > 40 else 'OPTIMAL HEALTH'}</p>
             </div>
             """, unsafe_allow_html=True)
-            
-        col2.metric("CPU Thermodynamic Load", f"{cpu}%", f"{'High' if cpu > 85 else 'Normal'}")
-        col3.metric("Physical RAM Health", f"{mem}%", f"Swap: {swap}%", delta_color="inverse")
-        
-        # Middle Row: Alerts & Log
-        a_col, l_col = st.columns(2)
-        
-        with a_col:
-            st.subheader("🚨 Real-Time Failure Alerts")
-            if not alerts:
-                st.success("No active hardware or software risks detected.")
-            for alert in alerts:
-                st.error(alert)
-                
-        with l_col:
-            st.subheader("📜 Predictive Scan Log")
-            st.markdown('<div class="failure-log">', unsafe_allow_html=True)
-            log_msg = f"[{now}] RISK: {risk}% | CPU: {cpu}% | IO: {io_wait}%"
-            st.session_state.log.append(log_msg)
-            for entry in reversed(st.session_state.log[-15:]):
-                st.write(entry)
-            st.markdown('</div>', unsafe_allow_html=True)
 
-        # Bottom Row: Visualization (FIXED: UNIQUE KEY)
-        st.subheader("📊 Hardware-Software Divergence Analysis")
+        with c2:
+            st.markdown(f"""
+            <div class="risk-card">
+                <h3 style="color:white; margin:0; font-size:18px;">CPU HEAT STRESS</h3>
+                <h1 style="font-size: 50px; color: {'#FF4500' if cpu > 85 else '#00FF00'}; margin:10px 0;">{cpu}%</h1>
+                <p style="color:white; font-weight:bold; margin:0;">{'WARNING: HIGH TEMP' if cpu > 85 else 'THERMAL STABLE'}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with c3:
+            st.markdown(f"""
+            <div class="risk-card">
+                <h3 style="color:white; margin:0; font-size:18px;">OS STABILITY</h3>
+                <h1 style="font-size: 50px; color: {'#00FF00' if zombies == 0 else '#FF4500'}; margin:10px 0;">{100-risk}%</h1>
+                <p style="color:white; font-weight:bold; margin:0;">ZOMBIES: {zombies}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        col_left, col_right = st.columns(2)
+        
+        with col_left:
+            st.subheader("🚨 Failure Diagnostics")
+            if not alerts:
+                st.success("Hardware and Software layers are performing within safety bounds.")
+            else:
+                for a in alerts:
+                    st.error(a)
+
+        with col_right:
+            st.subheader("📜 Predictive Scan Log")
+            log_html = f"<div class='failure-log'>{'<br>'.join(reversed(st.session_state.log_data))}</div>"
+            st.markdown(log_html, unsafe_allow_html=True)
+
+        st.subheader("📊 Stress Distribution Over Time")
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=st.session_state.hist_data['Time'], y=st.session_state.hist_data['CPU'], 
-                                 name="CPU Stress", line=dict(color='#FF4500', width=2)))
-        fig.add_trace(go.Scatter(x=st.session_state.hist_data['Time'], y=st.session_state.hist_data['Mem'], 
-                                 name="Memory Saturation", line=dict(color='#FFFFFF', width=2)))
-        
-        fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                          height=350, margin=dict(l=0, r=0, t=20, b=0))
-        
-        # THE FIX: Unique key based on timestamp to avoid DuplicateID error
+        fig.add_trace(go.Scatter(x=st.session_state.hist_df['Time'], y=st.session_state.hist_df['CPU'], name="CPU Load", line=dict(color='#FF4500')))
+        fig.add_trace(go.Scatter(x=st.session_state.hist_df['Time'], y=st.session_state.hist_df['Risk'], name="Risk %", line=dict(color='#FFFFFF', dash='dot')))
+        fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=300, margin=dict(l=0,r=0,t=0,b=0))
         st.plotly_chart(fig, use_container_width=True, key=f"chart_{time.time()}")
 
     time.sleep(update_interval)
