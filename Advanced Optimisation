@@ -7,22 +7,44 @@ from datetime import datetime
 import time
 
 # ---------------- Page Config ----------------
-st.set_page_config(page_title="InferAI PRO", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="InferAI", layout="wide", page_icon="⚡")
 
-# ---------------- Advanced CSS ----------------
+# ---------------- Advanced CSS (Updated to Original Color Scheme) ----------------
 st.markdown("""
 <style>
-body, .stApp {background-color:#0E1117; color:#FF4500; font-family:'Segoe UI', sans-serif;}
-[data-testid="stSidebar"] {background-color:#000 !important; border-right: 1px solid #FF4500;}
-.stMetric {background: #161B22; border: 1px solid #30363D; border-radius: 10px; padding: 15px;}
-.risk-card {
-    padding: 20px; border-radius: 15px; background: rgba(255, 69, 0, 0.1);
-    border: 2px solid #FF4500; margin-bottom: 20px; text-align: center;
+/* Main App Background & Text */
+body, .stApp {background-color:#FFF; color:#FF4500; font-family:'Inter', sans-serif;}
+
+/* Sidebar - Deep Black with Orange Text */
+[data-testid="stSidebar"] {background-color:#000 !important; border-right: 2px solid #FF4500; color:#FF4500 !important;}
+[data-testid="stSidebar"] * {color:#FF4500 !important;}
+
+/* Title Container - Gradient from Original */
+.title-container {
+    text-align:center; padding:40px 0; margin-bottom:50px;
+    background:linear-gradient(135deg,#000,#FF4500); border-radius:20px;
+    box-shadow:0 4px 25px rgba(255,69,0,0.25); border:2px solid #FF4500;
 }
+.title-container .main-title {font-size:56px; font-weight:900; color:#FFF; letter-spacing:2px; text-shadow:2px 2px 8px #000;}
+.title-container .subtitle {font-size:22px; color:#FFF; font-weight:500;}
+
+/* Risk Cards - White with Orange Border & Shadow */
+.risk-card {
+    padding: 20px; border-radius: 15px; background: #FFF;
+    border: 2px solid #FF4500; margin-bottom: 20px; text-align: center;
+    box-shadow: 0 4px 15px rgba(255,69,0,0.1);
+}
+.risk-card h3 {color: #000 !important; font-weight: 700;}
+
+/* Failure Log - Black Background with Neon Text */
 .failure-log {
     font-family: 'Courier New', monospace; font-size: 13px; background: #000;
-    color: #00FF00; padding: 15px; border-radius: 5px; height: 250px; overflow-y: scroll; border: 1px solid #333;
+    color: #FF4500; padding: 15px; border-radius: 10px; height: 250px; 
+    overflow-y: scroll; border: 2px solid #FF4500;
 }
+
+/* Success/Error override */
+.stAlert {border-radius: 10px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -32,9 +54,13 @@ if "log_data" not in st.session_state:
 if "hist_df" not in st.session_state:
     st.session_state.hist_df = pd.DataFrame(columns=['Time', 'CPU', 'Mem', 'Risk'])
 
-# ---------------- Title ----------------
-st.markdown('<h1 style="text-align:center; color:white;">⚡ INFERAI PRO</h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align:center; color:#FF4500;">Deep Kernel & Hardware Failure Prediction Engine</p>', unsafe_allow_html=True)
+# ---------------- Title (Using Original Style Container) ----------------
+st.markdown("""
+<div class="title-container">
+    <div class="main-title">InferAI</div>
+    <div class="subtitle">Deep Kernel & Hardware Failure Prediction Engine</div>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------- Sidebar ----------------
 st.sidebar.title("🛡️ Engine Status")
@@ -78,33 +104,33 @@ while True:
     st.session_state.hist_df = pd.concat([st.session_state.hist_df, new_point], ignore_index=True).tail(100)
 
     with main_placeholder.container():
-        # Top Row: All three major cards now highlighted
+        # Top Row: 3D-Style Risk Cards with Updated Colors
         c1, c2, c3 = st.columns(3)
         
         with c1:
             st.markdown(f"""
             <div class="risk-card">
-                <h3 style="color:white; margin:0; font-size:18px;">FAILURE PROBABILITY</h3>
-                <h1 style="font-size: 50px; color: {'#FF4500' if risk > 50 else '#00FF00'}; margin:10px 0;">{risk}%</h1>
-                <p style="color:white; font-weight:bold; margin:0;">{'SYSTEM DEGRADED' if risk > 40 else 'OPTIMAL HEALTH'}</p>
+                <h3 style="margin:0; font-size:18px;">FAILURE PROBABILITY</h3>
+                <h1 style="font-size: 50px; color: {'#FF4500' if risk > 50 else '#2ECC71'}; margin:10px 0;">{risk}%</h1>
+                <p style="color:#000; font-weight:bold; margin:0;">{'SYSTEM DEGRADED' if risk > 40 else 'OPTIMAL HEALTH'}</p>
             </div>
             """, unsafe_allow_html=True)
 
         with c2:
             st.markdown(f"""
             <div class="risk-card">
-                <h3 style="color:white; margin:0; font-size:18px;">CPU HEAT STRESS</h3>
-                <h1 style="font-size: 50px; color: {'#FF4500' if cpu > 85 else '#00FF00'}; margin:10px 0;">{cpu}%</h1>
-                <p style="color:white; font-weight:bold; margin:0;">{'WARNING: HIGH TEMP' if cpu > 85 else 'THERMAL STABLE'}</p>
+                <h3 style="margin:0; font-size:18px;">CPU HEAT STRESS</h3>
+                <h1 style="font-size: 50px; color: {'#FF4500' if cpu > 85 else '#2ECC71'}; margin:10px 0;">{cpu}%</h1>
+                <p style="color:#000; font-weight:bold; margin:0;">{'WARNING: HIGH TEMP' if cpu > 85 else 'THERMAL STABLE'}</p>
             </div>
             """, unsafe_allow_html=True)
 
         with c3:
             st.markdown(f"""
             <div class="risk-card">
-                <h3 style="color:white; margin:0; font-size:18px;">OS STABILITY</h3>
-                <h1 style="font-size: 50px; color: {'#00FF00' if zombies == 0 else '#FF4500'}; margin:10px 0;">{100-risk}%</h1>
-                <p style="color:white; font-weight:bold; margin:0;">ZOMBIES: {zombies}</p>
+                <h3 style="margin:0; font-size:18px;">OS STABILITY</h3>
+                <h1 style="font-size: 50px; color: {'#2ECC71' if zombies == 0 else '#FF4500'}; margin:10px 0;">{100-risk}%</h1>
+                <p style="color:#000; font-weight:bold; margin:0;">ZOMBIES: {zombies}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -123,11 +149,21 @@ while True:
             log_html = f"<div class='failure-log'>{'<br>'.join(reversed(st.session_state.log_data))}</div>"
             st.markdown(log_html, unsafe_allow_html=True)
 
+        # Updated Chart with White/Orange Theme
         st.subheader("📊 Stress Distribution Over Time")
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=st.session_state.hist_df['Time'], y=st.session_state.hist_df['CPU'], name="CPU Load", line=dict(color='#FF4500')))
-        fig.add_trace(go.Scatter(x=st.session_state.hist_df['Time'], y=st.session_state.hist_df['Risk'], name="Risk %", line=dict(color='#FFFFFF', dash='dot')))
-        fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=300, margin=dict(l=0,r=0,t=0,b=0))
+        fig.add_trace(go.Scatter(x=st.session_state.hist_df['Time'], y=st.session_state.hist_df['CPU'], name="CPU Load", line=dict(color='#FF4500', width=3)))
+        fig.add_trace(go.Scatter(x=st.session_state.hist_df['Time'], y=st.session_state.hist_df['Risk'], name="Risk %", line=dict(color='#000', dash='dot')))
+        
+        fig.update_layout(
+            paper_bgcolor="rgba(255,255,255,0)", 
+            plot_bgcolor="rgba(255,255,255,0)", 
+            height=300, 
+            margin=dict(l=0,r=0,t=0,b=0),
+            font=dict(color="#FF4500"),
+            xaxis=dict(gridcolor="#EEE"),
+            yaxis=dict(gridcolor="#EEE")
+        )
         st.plotly_chart(fig, use_container_width=True, key=f"chart_{time.time()}")
 
     time.sleep(update_interval)
