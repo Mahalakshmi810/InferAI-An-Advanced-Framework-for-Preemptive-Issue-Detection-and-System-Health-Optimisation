@@ -1,0 +1,7 @@
+psutil
+pandas
+numpy
+tensorflow
+streamlit
+xgboost
+scikit-learn
