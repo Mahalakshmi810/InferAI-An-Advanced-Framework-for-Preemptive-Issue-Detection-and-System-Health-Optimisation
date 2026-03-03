@@ -2,7 +2,7 @@ INFERAI-Infrastructure AI is an advanced framework for pre-emptive issue detecti
 
 Usage includes:
 1.INSTALLATION OF PACKAGES
-pip install psutil pandas numpy tensorflow streamlit xgboost scikit-learn
+Install the necessary packages from requirements.txt
 
 2.EXECUTION OF THE PYTHON FILE
 streamlit run main.py in the terminal
