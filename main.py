@@ -4,9 +4,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import IsolationForest
-import xgboost as xgb
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import LSTM, Dense, Input
 import plotly.graph_objects as go
 import time
 
@@ -54,24 +51,6 @@ if "anomaly_count" not in st.session_state:
 if "run" not in st.session_state:
     st.session_state.run = True
 
-#Autoencoder
-input_dim = 3
-input_layer = Input(shape=(input_dim,))
-encoded = Dense(8, activation='relu')(input_layer)
-encoded = Dense(4, activation='relu')(encoded)
-decoded = Dense(8, activation='relu')(encoded)
-decoded = Dense(input_dim, activation='sigmoid')(decoded)
-
-autoencoder = Model(inputs=input_layer, outputs=decoded)
-autoencoder.compile(optimizer='adam', loss='mse')
-
-#LSTM
-lstm_model = Sequential([
-    LSTM(8, activation='relu', input_shape=(1, input_dim)),
-    Dense(1, activation='sigmoid')
-])
-lstm_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-
 #GUI 
 st.subheader("📊 Live Sensor Metrics & Predictions")
 placeholder = st.empty()
@@ -102,20 +81,11 @@ while st.session_state.run:
     scaler = MinMaxScaler()
     scaled_data = scaler.fit_transform(st.session_state.sensor_history)
 
-    autoencoder.fit(
-        scaled_data,
-        scaled_data,
-        epochs=5,
-        batch_size=16,
-        verbose=0
-    )
+    iso = IsolationForest(contamination=0.05, random_state=42)
+    preds = iso.fit_predict(scaled_data)
 
-    reconstruction = autoencoder.predict(scaled_data, verbose=0)
-    mse = np.mean(np.power(scaled_data - reconstruction, 2), axis=1)
-    threshold = np.percentile(mse, 95)
-
-    #Anamoly Count 
-    if mse[-1] > threshold:
+    # Anomaly detection based on the latest data point
+    if preds[-1] == -1:
         st.session_state.anomaly_count += 1
     else:
         st.session_state.anomaly_count = 0
@@ -164,3 +134,4 @@ while st.session_state.run:
         st.plotly_chart(fig, use_container_width=True)
 
     time.sleep(update_interval)
+
